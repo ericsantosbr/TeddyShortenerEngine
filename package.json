@@ -4,6 +4,7 @@
   "description": "Tool for shortening URLs",
   "main": "index.js",
   "scripts": {
+    "dev": "npx nodemon index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Eric Santos",
@@ -11,6 +12,7 @@
   "dependencies": {
     "dotenv": "^16.4.5",
     "express": "^4.21.0",
+    "postgres": "^3.4.4",
     "uuid-base62": "^0.1.0"
   },
   "devDependencies": {
