@@ -2,11 +2,18 @@ const express = require('express');
 const { generateUUID, generateShortURL } = require('./helpers/URLHelpers');
 const { config } = require('dotenv');
 const { retrieveShortenedURLTarget, uploadShortenedURL, fetchURLsFromAnUser } = require('./helpers/DBhelpers');
+const authRouter = require('./controllers/Auth').router;
+const bodyParser = require('body-parser');
 
 config();
 
 const app = express();
 app.listen(process.env.ENGINE_PORT || 8355);
+
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
+
+app.use('/auth', authRouter);
 
 app.post('/short/*', (req, res, next) => {
     const url = req.params[0];

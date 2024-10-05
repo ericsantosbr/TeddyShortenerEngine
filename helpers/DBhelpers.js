@@ -109,9 +109,35 @@ async function fetchURLsFromAnUser (userID) {
     return returnData;
 }
 
+async function registerUser (data) {
+    let returnData = { success: false };
+
+    console.log('Data provided: ');
+    console.debug(data);
+    try {
+        const registerRestult = await sql`
+            insert into "User".users
+            (email, updatedat, isactive, password)
+            values
+            (${data.username}, ${new Date(Date.now()).toISOString()}, true, ${data.password})
+            returning email, user_id, users.createdat
+        `;
+
+        returnData.success = true;
+        returnData.returnedData = registerRestult;
+    } catch (e) {
+        console.debug(e);
+    }
+
+    console.debug(returnData);
+
+    return returnData;
+}
+
 module.exports = {
     retrieveShortenedURLTarget,
     uploadShortenedURL,
     disableShortenedURL,
-    fetchURLsFromAnUser
+    fetchURLsFromAnUser,
+    registerUser
 }
