@@ -67,12 +67,43 @@ async function uploadShortenedURL(data) {
             (${uploadData.shortenedurl}, ${uploadData.target}, ${uploadData.createdat}, ${uploadData.updatedat}, ${uploadData.isactive}, ${uploadData.hits})
             returning target
             `;
-            
-        returnData.target = targetInsertResult[0].target;
-        returnData.success = true;
-        returnData.code = 201;
-    } catch (e) {
 
+        console.log(targetInsertResult);
+        
+        if (typeof targetInsertResult[0] !== 'undefined') {
+            returnData.target = targetInsertResult[0].target;
+            returnData.success = true;
+            returnData.code = 201;
+        }
+    } catch (e) {
+        console.debug(e);
+    }
+
+    return returnData;
+}
+
+async function disableShortenedURL (urlID) {
+    sql`
+        update "URL".urls SET isactive = false where id = ${urlID}
+    `;
+}
+
+async function fetchURLsFromAnUser (userID) {
+    let returnData = {
+        success: false
+    };
+    let fetchedURLs;
+    try {
+        fetchedURLs = await sql`
+            select * from "URL".urls where email = ${userID}
+        `
+
+        if (fetchedURLs.length > 0) {
+            returnData.fetchedURLs = fetchedURLs;
+            returnData.success = true;
+        }
+    } catch (e) {
+        console.debug(e);
     }
 
     return returnData;
@@ -80,5 +111,7 @@ async function uploadShortenedURL(data) {
 
 module.exports = {
     retrieveShortenedURLTarget,
-    uploadShortenedURL
+    uploadShortenedURL,
+    disableShortenedURL,
+    fetchURLsFromAnUser
 }

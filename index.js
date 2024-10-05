@@ -1,7 +1,7 @@
 const express = require('express');
 const { generateUUID, generateShortURL } = require('./helpers/URLHelpers');
 const { config } = require('dotenv');
-const { retrieveShortenedURLTarget, uploadShortenedURL } = require('./helpers/DBhelpers');
+const { retrieveShortenedURLTarget, uploadShortenedURL, fetchURLsFromAnUser } = require('./helpers/DBhelpers');
 
 config();
 
@@ -21,7 +21,12 @@ app.post('/short/*', (req, res, next) => {
 
     let uploadResult = uploadShortenedURL(uploadData);
 
-    res.send('localhost/' + entryShortURL);
+    if (uploadResult.success) {
+        res.statusCode = uploadResult.code;
+        res.send('localhost/' + uploadResult.target);
+    } else {
+        res.send(uploadResult.message);
+    }
 
     return next();
 });
@@ -31,6 +36,26 @@ app.get('/', (req, res, next) => {
     res.send('Hello world!');
 
     return next();
+});
+
+/**
+ * TODO: set different IDs for different authenticated users
+ */
+app.get('/getURLs', async (req, res, next) => {
+    const userID = 1;
+
+    let returnData;
+    
+    try {
+        let searchResult = await fetchURLsFromAnUser(userID);
+        if (searchResult.success) {
+            returnData = searchResult.fetchedURLs;
+        }
+    } catch (e) {
+        returnData = [];
+    }
+
+    res.send(returnData);
 });
 
 app.get('/:url', async (req, res, next) => {
@@ -46,3 +71,4 @@ app.get('/:url', async (req, res, next) => {
 
     return next();
 });
+
