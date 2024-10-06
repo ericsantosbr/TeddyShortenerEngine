@@ -2,6 +2,7 @@ const { createClient } = require('redis');
 const { retrievePassword } = require('./DBhelpers');
 
 /**
+ * TODO: Migrate authenticateUser function from AuthHelpers.js to here
  * Creates authentication key for user and uploads it on a database. Ideally, this chunk authenticates using Basic auth, using the return from basic-auth lib
  * @param {string} data.name
  * @param {string} data.password
