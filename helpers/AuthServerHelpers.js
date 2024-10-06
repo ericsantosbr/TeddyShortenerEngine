@@ -1,44 +1,5 @@
-const bcrypt = require('bcrypt');
-const { dbRegisterUser, retrievePassword, retrieveUserData } = require('./DBhelpers');
 const { createClient } = require('redis');
-const dotenvConfig = require('dotenv').config;
-const uuidBase62 = require('uuid-base62');
-
-dotenvConfig();
-
-/**
- * Registers an user based on provided data
- * @param {string} data.username
- * @param {string} data.password
- */
-async function registerUser (data) {
-    let returnData = {
-        success: false
-    };
-
-    const userData = {
-        username: data.username
-    };
-
-    await bcrypt.hash(data.password, 12, async (err, hash) => {
-        if (err) {
-            console.debug(err);
-        } else {
-            userData.password = hash;
-
-            try {
-                const registerUserResult = await dbRegisterUser(userData);
-                returnData.success = true;
-                returnData.data = registerUserResult;
-        
-            } catch (e) {
-                console.debug(e);
-            }
-        }
-    });    
-
-    return returnData;
-}
+const { retrievePassword } = require('./DBhelpers');
 
 /**
  * Creates authentication key for user and uploads it on a database. Ideally, this chunk authenticates using Basic auth, using the return from basic-auth lib
@@ -47,9 +8,9 @@ async function registerUser (data) {
  */
 async function authenticateUser (data) {
     let returnData = { success: false }
-    const userData = await retrieveUserData(data.name);
+    const userPassword = await retrievePassword(data.name);
 
-    const match = await bcrypt.compare(data.pass, userData.data.password);
+    const match = await bcrypt.compare(data.pass, userPassword.data);
 
     if (match) {
         const redisUser = process.env.REDIS_USERNAME;
@@ -65,13 +26,12 @@ async function authenticateUser (data) {
 
             const generatedBearer = uuidBase62.v4();
 
-            const bearerKey = generatedBearer;
+            const bearerKey = data.name + ';' + generatedBearer
 
             const storedObj = {
-                user: userData.data.name,
+                user: data.name,
                 expiresAt: new Date(Date.now() + (redisBearerLifetime * 1000)).toISOString(),
-                isValid: true,
-                userId: userData.data
+                isValid: true
             };
 
             client.set(bearerKey, JSON.stringify(storedObj));
@@ -91,7 +51,35 @@ async function authenticateUser (data) {
     return returnData;
 }
 
+async function retrieveBearerData(bearer) {
+    let returnData = { success: false };
+
+    const redisUser = process.env.REDIS_USERNAME;
+    const redisPassword = process.env.REDIS_PASSWORD;
+    const redisHostname = process.env.REDIS_HOSTNAME;
+    const redisPort = process.env.REDIS_PORT;
+
+    try {
+        const client = await createClient({
+            url: 'redis://' + (redisUser ? redisUser + ':' + redisPassword + '@' : '') + redisHostname + ':' + redisPort
+        }).connect();
+
+        let bearerData = await client.get(bearer);
+
+        if (typeof bearerData !== 'undefined' && bearerData) {
+            returnData.success = true;
+            returnData.code = 200;
+            returnData.data = JSON.parse(bearerData);
+        }
+    } catch (e) {
+        console.debug(e);
+        returnData.message = 'Failed fetching bearer data';
+    }
+
+    return returnData;
+}
+
 module.exports = {
-    registerUser,
-    authenticateUser
+    uploadBearer,
+    retrieveBearerData
 }

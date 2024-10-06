@@ -18,8 +18,6 @@ function generateShortURL() {
         outputURL = outputURL + alphabet[Math.floor(Math.random() * (alphabet.length - 1))];
     }
 
-    console.log(outputURL);
-
     return outputURL;
 }
 

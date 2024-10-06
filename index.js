@@ -4,6 +4,7 @@ const { config } = require('dotenv');
 const { retrieveShortenedURLTarget, uploadShortenedURL, fetchURLsFromAnUser } = require('./helpers/DBhelpers');
 const authRouter = require('./controllers/Auth').router;
 const bodyParser = require('body-parser');
+const { validateUserAuth, catchAuthenticatedUserData } = require('./middlewawres/auth');
 
 config();
 
@@ -48,13 +49,13 @@ app.get('/', (req, res, next) => {
 /**
  * TODO: set different IDs for different authenticated users
  */
-app.get('/getURLs', async (req, res, next) => {
-    const userID = 1;
-
+app.get('/getURLs', validateUserAuth, async (req, res, next) => {
     let returnData;
+
+    let username = req.user;
     
     try {
-        let searchResult = await fetchURLsFromAnUser(userID);
+        let searchResult = await fetchURLsFromAnUser(username);
         if (searchResult.success) {
             returnData = searchResult.fetchedURLs;
         }
@@ -73,6 +74,7 @@ app.get('/:url', async (req, res, next) => {
     if (result.success) {
         res.redirect(result.target);
     } else {
+        res.status(result.code);
         res.send(result.message);
     }
 

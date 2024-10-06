@@ -26,10 +26,10 @@ async function retrieveShortenedURLTarget(url) {
         if (typeof searchResult[0] !== 'undefined') {
             returnData.target = searchResult[0].target;
             returnData.success = true;
+            returnData.code = 200;
         } else {
             returnData.message = 'Shortened URL not found';
             returnData.code = 404;
-
         }
     } catch (e) {
         console.debug(e);
@@ -67,8 +67,6 @@ async function uploadShortenedURL(data) {
             (${uploadData.shortenedurl}, ${uploadData.target}, ${uploadData.createdat}, ${uploadData.updatedat}, ${uploadData.isactive}, ${uploadData.hits})
             returning target
             `;
-
-        console.log(targetInsertResult);
         
         if (typeof targetInsertResult[0] !== 'undefined') {
             returnData.target = targetInsertResult[0].target;
@@ -88,14 +86,14 @@ async function disableShortenedURL (urlID) {
     `;
 }
 
-async function fetchURLsFromAnUser (userID) {
+async function fetchURLsFromAnUser (username) {
     let returnData = {
         success: false
     };
     let fetchedURLs;
     try {
         fetchedURLs = await sql`
-            select * from "URL".urls where email = ${userID}
+            select * from "URL".urls where email = ${username}
         `
 
         if (fetchedURLs.length > 0) {
@@ -112,8 +110,6 @@ async function fetchURLsFromAnUser (userID) {
 async function registerUser (data) {
     let returnData = { success: false };
 
-    console.log('Data provided: ');
-    console.debug(data);
     try {
         const registerRestult = await sql`
             insert into "User".users
@@ -129,7 +125,63 @@ async function registerUser (data) {
         console.debug(e);
     }
 
-    console.debug(returnData);
+    return returnData;
+}
+
+/**
+ * Retrieves user password on DB, based on a given username
+ * @param {string} username 
+ */
+async function retrievePassword (username) {
+    let returnData = { success: false };
+
+    try {
+        const searchResult = await sql`
+            select
+            (password)
+            from "User".users
+            where email = ${username}
+        `;
+
+
+        if (searchResult.length > 0) {
+            returnData.success = true;
+            returnData.data = searchResult[0].password;
+
+        } else {
+            return ''
+        }
+    } catch (e) {
+        console.debug(e);
+    }
+
+    return returnData;
+}
+/**
+ * Retrieves user data on DB, based on a given username
+ * @param {string} username 
+ */
+async function retrieveUserData (username) {
+    let returnData = { success: false };
+
+    try {
+        const searchResult = await sql`
+            select
+            email, user_id, password
+            from "User".users
+            where email = ${username}
+        `;
+
+        if (searchResult.length > 0) {
+            returnData.success = true;
+            returnData.data = searchResult[0];
+
+        } else {
+            return '';
+        }
+    } catch (e) {
+        console.debug(e);
+    }
 
     return returnData;
 }
@@ -139,5 +191,7 @@ module.exports = {
     uploadShortenedURL,
     disableShortenedURL,
     fetchURLsFromAnUser,
-    registerUser
+    registerUser,
+    retrievePassword,
+    retrieveUserData
 }
