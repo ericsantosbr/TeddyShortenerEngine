@@ -80,6 +80,5 @@ async function retrieveBearerData(bearer) {
 }
 
 module.exports = {
-    uploadBearer,
     retrieveBearerData
 }
