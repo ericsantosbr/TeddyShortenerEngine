@@ -66,6 +66,16 @@ app.get('/getURLs', validateUserAuth, async (req, res, next) => {
     res.send(returnData);
 });
 
+app.delete('/:url', validateUserAuth, async (req, res, next) => {
+    const urlToBeDeleted = req.params.url;
+
+});
+
+
+app.patch('/:url', validateUserAuth, async (req, res, next) => {
+
+});
+
 app.get('/:url', async (req, res, next) => {
     const url = req.params.url;
 
