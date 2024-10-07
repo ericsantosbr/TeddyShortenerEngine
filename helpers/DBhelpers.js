@@ -80,16 +80,29 @@ async function uploadShortenedURL(data) {
         updatedat: new Date(Date.now()).toISOString(),
         isactive: true,
         hits: 0
-    }
+    };
 
     try {
-        const targetInsertResult = await sql`
-            insert into "URL".urls
-            (shortenedurl, target, createdat, updatedat, isactive, hits)
-            values
-            (${uploadData.shortenedurl}, ${uploadData.target}, ${uploadData.createdat}, ${uploadData.updatedat}, ${uploadData.isactive}, ${uploadData.hits})
-            returning target
+        let targetInsertResult;
+
+        // This solutions refers to https://github.com/ericsantosbr/TeddyShortenerEngine/issues/2
+        if (typeof data.email !== 'undefined') {
+            targetInsertResult = await sql`
+                insert into "URL".urls
+                (shortenedurl, target, createdat, updatedat, isactive, hits, email, user_id)
+                values
+                (${uploadData.shortenedurl}, ${uploadData.target}, ${uploadData.createdat}, ${uploadData.updatedat}, ${uploadData.isactive}, ${uploadData.hits}, ${data.email}, ${data.user_id})
+                returning target
+                `;
+        } else {
+            targetInsertResult = await sql`
+                insert into "URL".urls
+                (shortenedurl, target, createdat, updatedat, isactive, hits)
+                values
+                (${uploadData.shortenedurl}, ${uploadData.target}, ${uploadData.createdat}, ${uploadData.updatedat}, ${uploadData.isactive}, ${uploadData.hits})
+                returning target
             `;
+        }
         
         if (typeof targetInsertResult[0] !== 'undefined') {
             returnData.target = targetInsertResult[0].target;

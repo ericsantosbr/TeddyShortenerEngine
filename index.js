@@ -27,6 +27,11 @@ app.post('/short/*', catchAuthenticatedUserData, (req, res, next) => {
         target: url
     }
 
+    if (typeof req.user !== 'undefined') {
+        uploadData.email = req.user;
+        uploadData.user_id = req.userId;
+    }
+
     let uploadResult = uploadShortenedURL(uploadData);
 
     if (uploadResult.success) {
