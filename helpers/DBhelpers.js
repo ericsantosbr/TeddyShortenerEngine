@@ -21,12 +21,14 @@ async function retrieveShortenedURLTarget(url) {
         success: false
     };
     try {
-        const searchResult = await sql`select target from "URL".urls where shortenedurl = ${url} and isActive = true`;
+        const searchResult = await sql`select target, id from "URL".urls where shortenedurl = ${url} and isActive = true`;
         
         if (typeof searchResult[0] !== 'undefined') {
             returnData.target = searchResult[0].target;
             returnData.success = true;
             returnData.code = 200;
+
+            await increaseURLHitsCounting(searchResult[0].id);
         } else {
             returnData.message = 'Shortened URL not found';
             returnData.code = 404;
@@ -235,6 +237,24 @@ async function retrieveUserData (username) {
     return returnData;
 }
 
+async function increaseURLHitsCounting (urlID) {
+    let returnData = { success: false };
+    try {
+        await sql`
+            update "URL".urls
+            set hits = hits + 1
+            where id = ${urlID}
+        `
+
+        returnData.success = true;
+
+    } catch (e) {
+        returnData.message = 'Unable to increase hits counting for ' + urlID;
+    }
+
+    return returnData;
+}
+
 module.exports = {
     retrieveShortenedURLTarget,
     uploadShortenedURL,
@@ -243,5 +263,6 @@ module.exports = {
     registerUser,
     retrievePassword,
     retrieveUserData,
-    retrieveShortenedURLData
+    retrieveShortenedURLData,
+    increaseURLHitsCounting
 }
