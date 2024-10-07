@@ -1,5 +1,6 @@
 const bcrypt = require('bcrypt');
-const { dbRegisterUser, retrievePassword, retrieveUserData } = require('./DBhelpers');
+const { retrievePassword, retrieveUserData } = require('./DBhelpers');
+const dbRegisterUser = require('./DBhelpers').registerUser;
 const { createClient } = require('redis');
 const dotenvConfig = require('dotenv').config;
 const uuidBase62 = require('uuid-base62');
@@ -16,26 +17,26 @@ async function registerUser (data) {
         success: false
     };
 
+    const hash = bcrypt.hashSync(data.password, 12);
+
     const userData = {
-        username: data.username
+        username: data.username,
+        password: hash
     };
 
-    await bcrypt.hash(data.password, 12, async (err, hash) => {
-        if (err) {
-            console.debug(err);
-        } else {
-            userData.password = hash;
+    try {
+        const registerUserResult = await dbRegisterUser(userData);
 
-            try {
-                const registerUserResult = await dbRegisterUser(userData);
-                returnData.success = true;
-                returnData.data = registerUserResult;
-        
-            } catch (e) {
-                console.debug(e);
-            }
+        if (registerUserResult.success) {
+            returnData.success = true;
+            returnData.data = registerUserResult.returnData;
+        } else if (registerUser.message){
+            returnData.message = registerUserResult.message;
         }
-    });    
+        
+    } catch (e) {
+        console.debug(e);
+    }
 
     return returnData;
 }

@@ -121,9 +121,12 @@ async function uploadShortenedURL(data) {
 async function disableShortenedURL (urlID) {
     let returnData = { success: false };
 
+    const updateDate = new Date(Date.now()).toISOString();
+    const deactivateDate = new Date(Date.now()).toISOString();
+
     try {
         await sql`
-        update "URL".urls SET isactive = false where id = ${urlID}
+        update "URL".urls SET isactive = false, deactivatedat = ${deactivateDate}, updatedat = ${updateDate} where id = ${urlID}
         `;
 
         returnData.success = true;
@@ -164,14 +167,18 @@ async function registerUser (data) {
     try {
         const registerRestult = await sql`
             insert into "User".users
-            (email, updatedat, isactive, password)
+            (email, updatedat, isactive, password, createdat)
             values
-            (${data.username}, ${new Date(Date.now()).toISOString()}, true, ${data.password})
+            (${data.username}, ${new Date(Date.now()).toISOString()}, true, ${data.password}, ${new Date(Date.now()).toISOString()})
             returning email, user_id, users.createdat
         `;
 
-        returnData.success = true;
-        returnData.returnedData = registerRestult;
+        if (typeof registerRestult[0] !== 'undefined') {
+            returnData.success = true;
+            returnData.returnedData = registerRestult[0];
+        } else {
+            returnData.message = 'Failed registering user';
+        }
     } catch (e) {
         console.debug(e);
     }
