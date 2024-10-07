@@ -1,7 +1,7 @@
 const express = require('express');
 const { generateUUID, generateShortURL } = require('./helpers/URLHelpers');
 const { config } = require('dotenv');
-const { retrieveShortenedURLTarget, uploadShortenedURL, fetchURLsFromAnUser } = require('./helpers/DBhelpers');
+const { retrieveShortenedURLTarget, uploadShortenedURL, fetchURLsFromAnUser, retrieveShortenedURLData, disableShortenedURL } = require('./helpers/DBhelpers');
 const authRouter = require('./controllers/Auth').router;
 const bodyParser = require('body-parser');
 const { validateUserAuth, catchAuthenticatedUserData } = require('./middlewawres/auth');
@@ -16,7 +16,7 @@ app.use(bodyParser.json());
 
 app.use('/auth', authRouter);
 
-app.post('/short/*', (req, res, next) => {
+app.post('/short/*', catchAuthenticatedUserData, (req, res, next) => {
     const url = req.params[0];
 
     const entryUUID = generateUUID();
@@ -64,11 +64,37 @@ app.get('/getURLs', validateUserAuth, async (req, res, next) => {
     }
 
     res.send(returnData);
+
+    next();
 });
 
-app.delete('/:url', validateUserAuth, async (req, res, next) => {
-    const urlToBeDeleted = req.params.url;
+app.delete('/:urlId', validateUserAuth, async (req, res, next) => {
+    const urlIdToBeDeleted = req.params.urlId;
 
+    const searchResult = await retrieveShortenedURLData(urlIdToBeDeleted);
+
+    if (typeof searchResult.data !== 'undefined') {
+        const urlData = searchResult.data;
+
+        if (urlData.user_id === req.userId) {
+            const result = await disableShortenedURL(urlIdToBeDeleted);
+
+            res.status(result.code);
+            if (result.success) {
+                res.send('URL deleted successfully');
+            } else {
+                res.send(result.message);
+            }
+        } else {
+            res.status(403);
+            res.send('User can\'t remove URL');
+        }
+    } else {
+        res.status(searchResult.code);
+        res.send(searchResult.message);
+    }
+
+    next();
 });
 
 

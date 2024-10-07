@@ -39,6 +39,29 @@ async function retrieveShortenedURLTarget(url) {
     return returnData;
 }
 
+async function retrieveShortenedURLData(urlID) {
+    let returnData = { success: false };
+
+    try {
+        const searchResult = await sql`select target, email, user_id from "URL".urls where id = ${urlID} and isActive = true`;
+        
+        if (typeof searchResult[0] !== 'undefined') {
+            returnData.data = searchResult[0];
+            returnData.success = true;
+            returnData.code = 200;
+        } else {
+            returnData.message = 'Shortened URL ID not found';
+            returnData.code = 404;
+        }
+    } catch (e) {
+        console.debug(e);
+        returnData.code = 500;
+        returnData.message = 'Failed fetching data from the database';
+    }
+
+    return returnData;
+}
+
 /**
  * 
  * @param {string} data.user
@@ -81,9 +104,22 @@ async function uploadShortenedURL(data) {
 }
 
 async function disableShortenedURL (urlID) {
-    sql`
+    let returnData = { success: false };
+
+    try {
+        await sql`
         update "URL".urls SET isactive = false where id = ${urlID}
-    `;
+        `;
+
+        returnData.success = true;
+        returnData.code = 200;
+    } catch (e) {
+        console.debug(e);
+        returnData.code = 500;
+        returnData.message = 'Unable to delete URL from database';
+    }
+
+    return returnData;
 }
 
 async function fetchURLsFromAnUser (username) {
@@ -193,5 +229,6 @@ module.exports = {
     fetchURLsFromAnUser,
     registerUser,
     retrievePassword,
-    retrieveUserData
+    retrieveUserData,
+    retrieveShortenedURLData
 }
