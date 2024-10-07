@@ -1,7 +1,7 @@
 const express = require('express');
-const { generateUUID, generateShortURL } = require('./helpers/URLHelpers');
+const { generateUUID, generateShortURL, checkURLMeetsRequirements } = require('./helpers/URLHelpers');
 const { config } = require('dotenv');
-const { retrieveShortenedURLTarget, uploadShortenedURL, fetchURLsFromAnUser, retrieveShortenedURLData, disableShortenedURL } = require('./helpers/DBhelpers');
+const { retrieveShortenedURLTarget, uploadShortenedURL, fetchURLsFromAnUser, retrieveShortenedURLData, disableShortenedURL, updateShortenedURL } = require('./helpers/DBhelpers');
 const authRouter = require('./controllers/Auth').router;
 const bodyParser = require('body-parser');
 const { validateUserAuth, catchAuthenticatedUserData } = require('./middlewawres/auth');
@@ -103,8 +103,45 @@ app.delete('/:urlId', validateUserAuth, async (req, res, next) => {
 });
 
 
-app.patch('/:url', validateUserAuth, async (req, res, next) => {
+app.patch('/:oldURL/:newURL', validateUserAuth, async (req, res, next) => {
+    const userID = req.userId;
+    const oldURL = req.params.oldURL;
+    const newURL = req.params.newURL;
 
+    if (!checkURLMeetsRequirements(oldURL)) {
+        res.send('Current URL given does not meet the requirements');
+        return next();
+    };
+    
+    if (!checkURLMeetsRequirements(newURL)) {
+        res.send('New URL given does not meet the requirements');
+        return next();
+        
+    };
+
+    const URLData = await retrieveShortenedURLTarget(oldURL);
+    if (!URLData.success) {
+        res.send('No shortened URL found');
+        return next();
+    }
+    
+    let updateResult;
+
+    if (URLData.userID === userID) {
+        updateResult = await updateShortenedURL(oldURL, newURL);
+
+        if (updateResult.success) {
+            res.json(updateResult);
+        } else {
+            res.status(updateResult.code);
+            typeof updateResult.message !== 'undefined' ? res.send(updateResult.message) : res.send('Failed updating shortened URL');
+        }
+    } else {
+        res.send('Authenticated user cannot change this URL');
+        res.status(401);
+    }
+
+    next();
 });
 
 app.get('/:url', async (req, res, next) => {

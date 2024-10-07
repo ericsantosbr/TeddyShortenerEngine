@@ -21,10 +21,12 @@ async function retrieveShortenedURLTarget(url) {
         success: false
     };
     try {
-        const searchResult = await sql`select target, id from "URL".urls where shortenedurl = ${url} and isActive = true`;
+        const searchResult = await sql`select target, id, user_id from "URL".urls where shortenedurl = ${url} and isActive = true`;
         
         if (typeof searchResult[0] !== 'undefined') {
             returnData.target = searchResult[0].target;
+            returnData.id = searchResult[0].id;
+            returnData.userID = searchResult[0].user_id;
             returnData.success = true;
             returnData.code = 200;
 
@@ -262,6 +264,32 @@ async function increaseURLHitsCounting (urlID) {
     return returnData;
 }
 
+/**
+ * Changes the shortened URL for a link
+ * @param {string} oldURL 
+ * @param {string} newURL 
+ */
+async function updateShortenedURL (oldURL, newURL) {
+    let returnData = { success: false };
+
+    try {
+        const updateResult = await sql`
+            update "URL".urls
+            set shortenedurl = ${newURL},
+            updatedat = ${new Date(Date.now()).toISOString()}
+            where shortenedurl = ${oldURL}
+            returning target, shortenedurl
+        `;
+
+        returnData.success = true;
+    } catch (e) {
+        returnData.code = 400;
+        returnData.message = 'Couldn\'t update to the new shortened URL';
+    }
+
+    return returnData;
+}
+
 module.exports = {
     retrieveShortenedURLTarget,
     uploadShortenedURL,
@@ -271,5 +299,6 @@ module.exports = {
     retrievePassword,
     retrieveUserData,
     retrieveShortenedURLData,
-    increaseURLHitsCounting
+    increaseURLHitsCounting,
+    updateShortenedURL
 }
