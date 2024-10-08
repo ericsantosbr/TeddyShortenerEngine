@@ -16,7 +16,7 @@ app.use(bodyParser.json());
 
 app.use('/auth', authRouter);
 
-app.post('/short/*', catchAuthenticatedUserData, (req, res, next) => {
+app.post('/api/short/*', catchAuthenticatedUserData, (req, res, next) => {
     const url = req.params[0];
 
     const entryUUID = generateUUID();
@@ -54,7 +54,7 @@ app.get('/', (req, res, next) => {
 /**
  * TODO: set different IDs for different authenticated users
  */
-app.get('/getURLs', validateUserAuth, async (req, res, next) => {
+app.get('/api/getURLs', validateUserAuth, async (req, res, next) => {
     let returnData;
 
     let username = req.user;
@@ -63,6 +63,8 @@ app.get('/getURLs', validateUserAuth, async (req, res, next) => {
         let searchResult = await fetchURLsFromAnUser(username);
         if (searchResult.success) {
             returnData = searchResult.fetchedURLs;
+        } else {
+            returnData = [];
         }
     } catch (e) {
         returnData = [];
@@ -73,7 +75,7 @@ app.get('/getURLs', validateUserAuth, async (req, res, next) => {
     next();
 });
 
-app.delete('/:urlId', validateUserAuth, async (req, res, next) => {
+app.delete('/api/:urlId', validateUserAuth, async (req, res, next) => {
     const urlIdToBeDeleted = req.params.urlId;
 
     const searchResult = await retrieveShortenedURLData(urlIdToBeDeleted);
@@ -103,7 +105,7 @@ app.delete('/:urlId', validateUserAuth, async (req, res, next) => {
 });
 
 
-app.patch('/:oldURL/:newURL', validateUserAuth, async (req, res, next) => {
+app.patch('/api/:oldURL/:newURL', validateUserAuth, async (req, res, next) => {
     const userID = req.userId;
     const oldURL = req.params.oldURL;
     const newURL = req.params.newURL;
@@ -145,6 +147,7 @@ app.patch('/:oldURL/:newURL', validateUserAuth, async (req, res, next) => {
 });
 
 app.get('/:url', async (req, res, next) => {
+    console.debug(req.route);
     const url = req.params.url;
 
     const result = await retrieveShortenedURLTarget(url);
